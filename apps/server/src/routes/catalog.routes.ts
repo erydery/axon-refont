@@ -1,0 +1,11 @@
+import { Router } from 'express';
+import { and, asc, eq } from 'drizzle-orm';
+import { db } from '../db/client.js';
+import { courses, levels, options } from '../db/schema.js';
+import { requireAuth } from '../middleware/auth.js';
+export const catalogRouter = Router();
+catalogRouter.use(requireAuth);
+catalogRouter.get('/options', async (_req, res, next) => { try { res.json(await db.select().from(options).orderBy(asc(options.name))); } catch (error) { next(error); } });
+catalogRouter.get('/levels', async (_req, res, next) => { try { res.json(await db.select().from(levels).orderBy(asc(levels.order))); } catch (error) { next(error); } });
+catalogRouter.get('/preview', async (req, res, next) => { try { const optionId = Number(req.query.optionId); const levelId = Number(req.query.levelId); if (!optionId || !levelId) return res.status(400).json({ error: 'optionId et levelId sont requis.' }); res.json(await db.select().from(courses).where(and(eq(courses.optionId, optionId), eq(courses.levelId, levelId))).orderBy(asc(courses.title))); } catch (error) { next(error); } });
+catalogRouter.get('/courses', async (_req, res, next) => { try { const rows = await db.query.courses.findMany({ with: { option: { with: { sector: true } }, level: true, chapters: true } }); res.json(rows); } catch (error) { next(error); } });
