@@ -6,6 +6,7 @@ import { ClerkProvider } from '@clerk/clerk-react';
 import { AuthProvider } from './context/AuthContext';
 import { router } from './index';
 import './index.css';
+import './brand-theme.css';
 
 const clerkKey = import.meta.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 const app = clerkKey
