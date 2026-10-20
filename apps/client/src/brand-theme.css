@@ -393,3 +393,24 @@ button{color:inherit}
 .dashboard-shell .sidebar-brand>div>b{font-family:'Barlow Condensed','Arial Narrow',sans-serif;font-weight:800}
 .dashboard-shell .sidebar-brand>div>small,
 .dashboard-shell .sidebar .user-meta>span{font-family:'DM Sans',Arial,sans-serif}
+
+/* Markdown diagrams and data charts: readable, responsive and theme-aware. */
+:root{--chart-primary:#1800f5;--chart-secondary:#6658d9;--chart-tertiary:#329b79;--chart-quaternary:#e08b43;--chart-grid:#34376b22;--chart-axis:#777a9d;--chart-tooltip-bg:#fff;--chart-text:#34376b}
+:root[data-theme="dark"]{--chart-primary:#8f83ff;--chart-secondary:#b18bff;--chart-tertiary:#54c99a;--chart-quaternary:#ffb66b;--chart-grid:#ffffff24;--chart-axis:#b4b6d0;--chart-tooltip-bg:#1b1c29;--chart-text:#eef0ff}
+.markdown-content pre{max-width:100%;overflow-x:auto;border:1px solid #34376b18;border-radius:12px;background:#f0f0f8;color:#34376b;padding:16px;white-space:pre-wrap}
+.markdown-content pre code{display:block;overflow-x:auto;white-space:pre}
+.mermaid-wrap,.stat-chart{box-sizing:border-box;width:100%;max-width:100%;min-width:0;margin:24px 0;padding:clamp(12px,2vw,22px);border:1px solid #34376b18;border-radius:16px;background:#fff;overflow-x:auto;overflow-y:hidden}
+.mermaid-wrap svg{display:block;width:auto;max-width:100%;height:auto;margin:0 auto;font-family:'DM Sans',Arial,sans-serif}
+.mermaid-wrap svg text,.mermaid-wrap svg tspan{font-family:'DM Sans',Arial,sans-serif}
+.stat-chart{height:340px}
+.stat-chart figcaption{margin:0 0 10px;color:#34376b;font-family:'DM Sans',Arial,sans-serif;font-size:14px;font-weight:700}
+.chart-fallback{display:grid;gap:8px;max-width:100%;margin:20px 0;padding:16px;border:1px solid #e3a35a66;border-radius:14px;background:#fff9f0;color:#5c4630;overflow:hidden}
+.chart-fallback>strong{font-size:13px}
+.chart-fallback>span{font-size:12px}
+.chart-fallback pre{max-height:220px;margin:0;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;font:11px/1.6 'DM Sans',Arial,sans-serif}
+:root[data-theme="dark"] .mermaid-wrap,
+:root[data-theme="dark"] .stat-chart{border-color:#ffffff20;background:#1b1c29}
+:root[data-theme="dark"] .stat-chart figcaption{color:#eef0ff}
+:root[data-theme="dark"] .markdown-content pre{border-color:#ffffff20;background:#202130;color:#eef0ff}
+:root[data-theme="dark"] .chart-fallback{border-color:#9c713d88;background:#30271e;color:#f4d8b5}
+:root[data-theme="dark"] .chart-fallback pre{color:#f4d8b5}
