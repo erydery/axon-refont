@@ -1,31 +1,417 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { addMonths, eachDayOfInterval, endOfMonth, endOfWeek, format, isSameDay, isSameMonth, startOfMonth, startOfWeek, subMonths } from 'date-fns';
+import {
+  addMonths,
+  eachDayOfInterval,
+  endOfMonth,
+  endOfWeek,
+  format,
+  isSameDay,
+  isSameMonth,
+  startOfMonth,
+  startOfWeek,
+  subMonths,
+} from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { ArrowLeft, ArrowRight, CalendarDays, Check, ChevronLeft, ChevronRight, Clock3, Plus, Trash2, X } from 'lucide-react';
+import {
+  ArrowLeft,
+  ArrowRight,
+  CalendarDays,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Clock3,
+  Plus,
+  Trash2,
+  X,
+} from 'lucide-react';
 import toast from 'react-hot-toast';
 import { api } from '../services/http';
 import type { DashboardData, StudyTask } from '../types';
 
-const localDateTime = (date: Date) => { const offset = date.getTimezoneOffset() * 60000; return new Date(date.getTime() - offset).toISOString().slice(0, 16); };
+const localDateTime = (date: Date) => {
+  const offset = date.getTimezoneOffset() * 60000;
+  return new Date(date.getTime() - offset).toISOString().slice(0, 16);
+};
 
 export function PlanningPage() {
-  const [month, setMonth] = useState(startOfMonth(new Date())); const [tasks, setTasks] = useState<StudyTask[]>([]); const [courses, setCourses] = useState<DashboardData['courses']>([]);
-  const [selectedDay, setSelectedDay] = useState(new Date()); const [open, setOpen] = useState(false); const [busy, setBusy] = useState(false);
-  const [form, setForm] = useState({ title: '', chapterId: '', notes: '', scheduledAt: localDateTime(new Date(Date.now() + 3600000)), durationMinutes: 30 });
-  const load = async () => { try { const from = startOfWeek(startOfMonth(month), { weekStartsOn: 1 }); const to = endOfWeek(endOfMonth(month), { weekStartsOn: 1 }); const [items, dashboard] = await Promise.all([api<StudyTask[]>(`/study/planning?from=${encodeURIComponent(from.toISOString())}&to=${encodeURIComponent(to.toISOString())}`), api<DashboardData>('/learning/dashboard')]); setTasks(items); setCourses(dashboard.courses); } catch (error) { toast.error(error instanceof Error ? error.message : 'Impossible de charger le planning.'); } };
-  useEffect(() => { void load(); }, [month]);
-  const days = eachDayOfInterval({ start: startOfWeek(startOfMonth(month), { weekStartsOn: 1 }), end: endOfWeek(endOfMonth(month), { weekStartsOn: 1 }) });
-  const dayTasks = tasks.filter(task => isSameDay(new Date(task.scheduledAt), selectedDay));
-  const summary = useMemo(() => ({ planned: tasks.filter(t => t.status === 'planned').length, completed: tasks.filter(t => t.status === 'completed').length }), [tasks]);
-  function openCreate(day = selectedDay) { const when = new Date(day); when.setHours(when.toDateString() === new Date().toDateString() ? new Date().getHours() + 1 : 9, 0, 0, 0); setForm({ title: '', chapterId: '', notes: '', scheduledAt: localDateTime(when), durationMinutes: 30 }); setOpen(true); }
-  async function create(event: FormEvent) { event.preventDefault(); setBusy(true); try { const result = await api<StudyTask>('/study/planning', { method: 'POST', body: JSON.stringify({ title: form.title, chapterId: form.chapterId ? Number(form.chapterId) : null, notes: form.notes || null, scheduledAt: new Date(form.scheduledAt).toISOString(), durationMinutes: Number(form.durationMinutes) }) }); toast.success('Séance ajoutée au planning.'); setTasks(list => [...list, result]); setSelectedDay(new Date(result.scheduledAt)); setOpen(false); } catch (error) { toast.error(error instanceof Error ? error.message : 'Création impossible.'); } finally { setBusy(false); } }
-  async function updateStatus(task: StudyTask) { const status = task.status === 'completed' ? 'planned' : 'completed'; try { const updated = await api<StudyTask>(`/study/planning/${task.id}`, { method: 'PATCH', body: JSON.stringify({ status }) }); setTasks(items => items.map(item => item.id === task.id ? { ...item, ...updated } : item)); } catch (error) { toast.error(error instanceof Error ? error.message : 'Mise à jour impossible.'); } }
-  async function remove(task: StudyTask) { try { await api(`/study/planning/${task.id}`, { method: 'DELETE' }); setTasks(items => items.filter(item => item.id !== task.id)); toast.success('Séance supprimée.'); } catch (error) { toast.error(error instanceof Error ? error.message : 'Suppression impossible.'); } }
-  return <div className="page-stack study-page"><header className="study-heading"><div><span className="page-kicker">ORGANISATION DU TRAVAIL</span><h1>Mon <em>planning.</em></h1><p>Planifiez et suivez vos séances dans votre cursus réel.</p></div><button className="button button-lime" onClick={() => openCreate()}><Plus size={17}/> Planifier une séance</button></header>
-    <div className="study-stat-row"><div className="study-stat"><CalendarDays/><span>SÉANCES PLANIFIÉES</span><b>{summary.planned}</b></div><div className="study-stat"><Check/><span>TERMINÉES CE MOIS</span><b>{summary.completed}</b></div><div className="study-stat"><Clock3/><span>MOIS AFFICHÉ</span><b>{format(month, 'MMMM yyyy', { locale: fr })}</b></div></div>
-    <div className="planning-layout"><section className="calendar-panel"><div className="calendar-toolbar"><div><span className="page-kicker">CALENDRIER</span><h2>{format(month, 'MMMM yyyy', { locale: fr })}</h2></div><div className="calendar-nav"><button className="square-action" aria-label="Mois précédent" onClick={() => setMonth(value => startOfMonth(subMonths(value, 1)))}><ChevronLeft/></button><button className="button button-quiet today-button" onClick={() => { setMonth(startOfMonth(new Date())); setSelectedDay(new Date()); }}>Aujourd’hui</button><button className="square-action" aria-label="Mois suivant" onClick={() => setMonth(value => startOfMonth(addMonths(value, 1)))}><ChevronRight/></button></div></div><div className="calendar-grid"><div className="weekday-row">{['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'].map(day => <span key={day}>{day}</span>)}</div><div className="calendar-days">{days.map(day => { const items = tasks.filter(task => isSameDay(new Date(task.scheduledAt), day)); return <button key={day.toISOString()} className={`calendar-day ${!isSameMonth(day, month) ? 'outside' : ''} ${isSameDay(day, selectedDay) ? 'selected' : ''} ${isSameDay(day, new Date()) ? 'today' : ''}`} onClick={() => setSelectedDay(day)}><span>{format(day, 'd')}</span>{items.length > 0 && <div className="calendar-dots">{items.slice(0, 3).map(item => <i key={item.id} className={item.status}/>) }{items.length > 3 && <small>+{items.length - 3}</small>}</div>}</button>; })}</div></div><div className="calendar-legend"><span><i className="planned"/>À faire</span><span><i className="completed"/>Terminée</span><span><i className="cancelled"/>Annulée</span></div></section>
-      <aside className="day-panel"><div className="day-panel-head"><div><span className="page-kicker">SÉANCES DU JOUR</span><h2>{format(selectedDay, 'EEEE d MMMM', { locale: fr })}</h2></div><button className="square-action" onClick={() => openCreate(selectedDay)} aria-label="Ajouter une séance"><Plus size={18}/></button></div><div className="day-task-list">{dayTasks.length ? dayTasks.map(task => <article key={task.id} className={`day-task ${task.status}`}><div className="task-time">{format(new Date(task.scheduledAt), 'HH:mm')}<i/></div><div className="task-body"><b>{task.title}</b><span>{task.chapterTitle || task.courseTitle || 'Séance générale'}</span><small><Clock3 size={12}/> {task.durationMinutes} min</small>{task.notes && <p>{task.notes}</p>}<div className="task-buttons"><button className="button button-quiet task-done" onClick={() => void updateStatus(task)}>{task.status === 'completed' ? <><ArrowLeft size={13}/> Reprendre</> : <><Check size={13}/> Terminer</>}</button><button className="square-action danger-action" title="Supprimer" onClick={() => void remove(task)}><Trash2 size={14}/></button></div></div></article>) : <div className="empty-inline"><CalendarDays size={21}/><p>Aucune séance prévue pour ce jour.</p><button className="text-link" onClick={() => openCreate(selectedDay)}>Ajouter une séance <ArrowRight size={14}/></button></div>}</div></aside>
+  const [month, setMonth] = useState(startOfMonth(new Date()));
+  const [tasks, setTasks] = useState<StudyTask[]>([]);
+  const [courses, setCourses] = useState<DashboardData['courses']>([]);
+  const [selectedDay, setSelectedDay] = useState(new Date());
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [form, setForm] = useState({
+    title: '',
+    chapterId: '',
+    notes: '',
+    scheduledAt: localDateTime(new Date(Date.now() + 3600000)),
+    durationMinutes: 30,
+  });
+  const load = async () => {
+    try {
+      const from = startOfWeek(startOfMonth(month), { weekStartsOn: 1 });
+      const to = endOfWeek(endOfMonth(month), { weekStartsOn: 1 });
+      const [items, dashboard] = await Promise.all([
+        api<StudyTask[]>(
+          `/study/planning?from=${encodeURIComponent(from.toISOString())}&to=${encodeURIComponent(to.toISOString())}`,
+        ),
+        api<DashboardData>('/learning/dashboard'),
+      ]);
+      setTasks(items);
+      setCourses(dashboard.courses);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Impossible de charger le planning.');
+    }
+  };
+  useEffect(() => {
+    void load();
+  }, [month]);
+  const days = eachDayOfInterval({
+    start: startOfWeek(startOfMonth(month), { weekStartsOn: 1 }),
+    end: endOfWeek(endOfMonth(month), { weekStartsOn: 1 }),
+  });
+  const dayTasks = tasks.filter((task) => isSameDay(new Date(task.scheduledAt), selectedDay));
+  const summary = useMemo(
+    () => ({
+      planned: tasks.filter((t) => t.status === 'planned').length,
+      completed: tasks.filter((t) => t.status === 'completed').length,
+    }),
+    [tasks],
+  );
+  function openCreate(day = selectedDay) {
+    const when = new Date(day);
+    when.setHours(
+      when.toDateString() === new Date().toDateString() ? new Date().getHours() + 1 : 9,
+      0,
+      0,
+      0,
+    );
+    setForm({
+      title: '',
+      chapterId: '',
+      notes: '',
+      scheduledAt: localDateTime(when),
+      durationMinutes: 30,
+    });
+    setOpen(true);
+  }
+  async function create(event: FormEvent) {
+    event.preventDefault();
+    setBusy(true);
+    try {
+      const result = await api<StudyTask>('/study/planning', {
+        method: 'POST',
+        body: JSON.stringify({
+          title: form.title,
+          chapterId: form.chapterId ? Number(form.chapterId) : null,
+          notes: form.notes || null,
+          scheduledAt: new Date(form.scheduledAt).toISOString(),
+          durationMinutes: Number(form.durationMinutes),
+        }),
+      });
+      toast.success('Séance ajoutée au planning.');
+      setTasks((list) => [...list, result]);
+      setSelectedDay(new Date(result.scheduledAt));
+      setOpen(false);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Création impossible.');
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function updateStatus(task: StudyTask) {
+    const status = task.status === 'completed' ? 'planned' : 'completed';
+    try {
+      const updated = await api<StudyTask>(`/study/planning/${task.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status }),
+      });
+      setTasks((items) =>
+        items.map((item) => (item.id === task.id ? { ...item, ...updated } : item)),
+      );
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Mise à jour impossible.');
+    }
+  }
+  async function remove(task: StudyTask) {
+    try {
+      await api(`/study/planning/${task.id}`, { method: 'DELETE' });
+      setTasks((items) => items.filter((item) => item.id !== task.id));
+      toast.success('Séance supprimée.');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Suppression impossible.');
+    }
+  }
+  return (
+    <div className="page-stack study-page">
+      <header className="study-heading">
+        <div>
+          <span className="page-kicker">ORGANISATION DU TRAVAIL</span>
+          <h1>
+            Mon <em>planning.</em>
+          </h1>
+          <p>Planifiez et suivez vos séances dans votre cursus réel.</p>
+        </div>
+        <button className="button button-lime" onClick={() => openCreate()}>
+          <Plus size={17} /> Planifier une séance
+        </button>
+      </header>
+      <div className="study-stat-row">
+        <div className="study-stat">
+          <CalendarDays />
+          <span>SÉANCES PLANIFIÉES</span>
+          <b>{summary.planned}</b>
+        </div>
+        <div className="study-stat">
+          <Check />
+          <span>TERMINÉES CE MOIS</span>
+          <b>{summary.completed}</b>
+        </div>
+        <div className="study-stat">
+          <Clock3 />
+          <span>MOIS AFFICHÉ</span>
+          <b>{format(month, 'MMMM yyyy', { locale: fr })}</b>
+        </div>
+      </div>
+      <div className="planning-layout">
+        <section className="calendar-panel">
+          <div className="calendar-toolbar">
+            <div>
+              <span className="page-kicker">CALENDRIER</span>
+              <h2>{format(month, 'MMMM yyyy', { locale: fr })}</h2>
+            </div>
+            <div className="calendar-nav">
+              <button
+                className="square-action"
+                aria-label="Mois précédent"
+                onClick={() => setMonth((value) => startOfMonth(subMonths(value, 1)))}
+              >
+                <ChevronLeft />
+              </button>
+              <button
+                className="button button-quiet today-button"
+                onClick={() => {
+                  setMonth(startOfMonth(new Date()));
+                  setSelectedDay(new Date());
+                }}
+              >
+                Aujourd’hui
+              </button>
+              <button
+                className="square-action"
+                aria-label="Mois suivant"
+                onClick={() => setMonth((value) => startOfMonth(addMonths(value, 1)))}
+              >
+                <ChevronRight />
+              </button>
+            </div>
+          </div>
+          <div className="calendar-grid">
+            <div className="weekday-row">
+              {['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'].map((day) => (
+                <span key={day}>{day}</span>
+              ))}
+            </div>
+            <div className="calendar-days">
+              {days.map((day) => {
+                const items = tasks.filter((task) => isSameDay(new Date(task.scheduledAt), day));
+                return (
+                  <button
+                    key={day.toISOString()}
+                    className={`calendar-day ${!isSameMonth(day, month) ? 'outside' : ''} ${isSameDay(day, selectedDay) ? 'selected' : ''} ${isSameDay(day, new Date()) ? 'today' : ''}`}
+                    onClick={() => setSelectedDay(day)}
+                  >
+                    <span>{format(day, 'd')}</span>
+                    {items.length > 0 && (
+                      <div className="calendar-dots">
+                        {items.slice(0, 3).map((item) => (
+                          <i key={item.id} className={item.status} />
+                        ))}
+                        {items.length > 3 && <small>+{items.length - 3}</small>}
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <div className="calendar-legend">
+            <span>
+              <i className="planned" />À faire
+            </span>
+            <span>
+              <i className="completed" />
+              Terminée
+            </span>
+            <span>
+              <i className="cancelled" />
+              Annulée
+            </span>
+          </div>
+        </section>
+        <aside className="day-panel">
+          <div className="day-panel-head">
+            <div>
+              <span className="page-kicker">SÉANCES DU JOUR</span>
+              <h2>{format(selectedDay, 'EEEE d MMMM', { locale: fr })}</h2>
+            </div>
+            <button
+              className="square-action"
+              onClick={() => openCreate(selectedDay)}
+              aria-label="Ajouter une séance"
+            >
+              <Plus size={18} />
+            </button>
+          </div>
+          <div className="day-task-list">
+            {dayTasks.length ? (
+              dayTasks.map((task) => (
+                <article key={task.id} className={`day-task ${task.status}`}>
+                  <div className="task-time">
+                    {format(new Date(task.scheduledAt), 'HH:mm')}
+                    <i />
+                  </div>
+                  <div className="task-body">
+                    <b>{task.title}</b>
+                    <span>{task.chapterTitle || task.courseTitle || 'Séance générale'}</span>
+                    <small>
+                      <Clock3 size={12} /> {task.durationMinutes} min
+                    </small>
+                    {task.notes && <p>{task.notes}</p>}
+                    <div className="task-buttons">
+                      <button
+                        className="button button-quiet task-done"
+                        onClick={() => void updateStatus(task)}
+                      >
+                        {task.status === 'completed' ? (
+                          <>
+                            <ArrowLeft size={13} /> Reprendre
+                          </>
+                        ) : (
+                          <>
+                            <Check size={13} /> Terminer
+                          </>
+                        )}
+                      </button>
+                      <button
+                        className="square-action danger-action"
+                        title="Supprimer"
+                        onClick={() => void remove(task)}
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              ))
+            ) : (
+              <div className="empty-inline">
+                <CalendarDays size={21} />
+                <p>Aucune séance prévue pour ce jour.</p>
+                <button className="text-link" onClick={() => openCreate(selectedDay)}>
+                  Ajouter une séance <ArrowRight size={14} />
+                </button>
+              </div>
+            )}
+          </div>
+        </aside>
+      </div>
+      {open && (
+        <div className="modal-backdrop" onClick={() => setOpen(false)}>
+          <div className="modal-card study-modal" onClick={(event) => event.stopPropagation()}>
+            <button className="modal-close" onClick={() => setOpen(false)}>
+              <X />
+            </button>
+            <span className="page-kicker">NOUVELLE SÉANCE</span>
+            <h2>Ajouter au planning.</h2>
+            <form className="study-form" onSubmit={create}>
+              <label>
+                Titre de la séance
+                <input
+                  value={form.title}
+                  minLength={2}
+                  maxLength={255}
+                  onChange={(e) => setForm({ ...form, title: e.target.value })}
+                  placeholder="Ex. Réviser les intégrales"
+                  required
+                />
+              </label>
+              <label>
+                Chapitre associé{' '}
+                <select
+                  value={form.chapterId}
+                  onChange={(e) => {
+                    const id = e.target.value;
+                    const chapter = courses
+                      .flatMap((course) =>
+                        course.chapters.map((ch) => ({ ...ch, courseTitle: course.title })),
+                      )
+                      .find((item) => String(item.id) === id);
+                    setForm({
+                      ...form,
+                      chapterId: id,
+                      title: form.title || (chapter ? `Réviser · ${chapter.title}` : ''),
+                    });
+                  }}
+                >
+                  <option value="">Séance générale</option>
+                  {courses.map((course) => (
+                    <optgroup key={course.id} label={course.title}>
+                      {course.chapters.map((chapter) => (
+                        <option key={chapter.id} value={chapter.id}>
+                          {chapter.title}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </select>
+              </label>
+              <div className="study-form-row">
+                <label>
+                  Date et heure
+                  <input
+                    type="datetime-local"
+                    value={form.scheduledAt}
+                    onChange={(e) => setForm({ ...form, scheduledAt: e.target.value })}
+                    required
+                  />
+                </label>
+                <label>
+                  Durée (min)
+                  <input
+                    type="number"
+                    min={5}
+                    max={480}
+                    step={5}
+                    value={form.durationMinutes}
+                    onChange={(e) => setForm({ ...form, durationMinutes: Number(e.target.value) })}
+                    required
+                  />
+                </label>
+              </div>
+              <label>
+                Notes (facultatif)
+                <textarea
+                  rows={3}
+                  maxLength={2000}
+                  value={form.notes}
+                  onChange={(e) => setForm({ ...form, notes: e.target.value })}
+                  placeholder="Objectifs ou notes personnelles"
+                />
+              </label>
+              <button className="button button-lime full-button" disabled={busy}>
+                {busy ? (
+                  'Enregistrement…'
+                ) : (
+                  <>
+                    <Plus size={16} /> Enregistrer la séance
+                  </>
+                )}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
-    {open && <div className="modal-backdrop" onClick={() => setOpen(false)}><div className="modal-card study-modal" onClick={event => event.stopPropagation()}><button className="modal-close" onClick={() => setOpen(false)}><X/></button><span className="page-kicker">NOUVELLE SÉANCE</span><h2>Ajouter au planning.</h2><form className="study-form" onSubmit={create}><label>Titre de la séance<input value={form.title} minLength={2} maxLength={255} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="Ex. Réviser les intégrales" required/></label><label>Chapitre associé <select value={form.chapterId} onChange={e => { const id = e.target.value; const chapter = courses.flatMap(course => course.chapters.map(ch => ({ ...ch, courseTitle: course.title }))).find(item => String(item.id) === id); setForm({ ...form, chapterId: id, title: form.title || (chapter ? `Réviser · ${chapter.title}` : '') }); }}><option value="">Séance générale</option>{courses.map(course => <optgroup key={course.id} label={course.title}>{course.chapters.map(chapter => <option key={chapter.id} value={chapter.id}>{chapter.title}</option>)}</optgroup>)}</select></label><div className="study-form-row"><label>Date et heure<input type="datetime-local" value={form.scheduledAt} onChange={e => setForm({ ...form, scheduledAt: e.target.value })} required/></label><label>Durée (min)<input type="number" min={5} max={480} step={5} value={form.durationMinutes} onChange={e => setForm({ ...form, durationMinutes: Number(e.target.value) })} required/></label></div><label>Notes (facultatif)<textarea rows={3} maxLength={2000} value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} placeholder="Objectifs ou notes personnelles"/></label><button className="button button-lime full-button" disabled={busy}>{busy ? 'Enregistrement…' : <><Plus size={16}/> Enregistrer la séance</>}</button></form></div></div>}
-  </div>;
+  );
 }

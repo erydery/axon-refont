@@ -3,6 +3,7 @@
   "private": true,
   "scripts": {
     "install:all": "npm install --prefix apps/client && npm install --prefix apps/server",
+    "format": "prettier --write \"apps/client/src/**/*.{ts,tsx,css}\" \"apps/server/src/**/*.ts\"",
     "dev": "concurrently -n client,server -c cyan,green \"npm run dev --prefix apps/client\" \"npm run dev --prefix apps/server\"",
     "dev:client": "npm run dev --prefix apps/client",
     "dev:server": "npm run dev --prefix apps/server",
@@ -11,5 +12,8 @@
     "db:migrate": "npm run db:migrate --prefix apps/server",
     "db:studio": "npm run db:studio --prefix apps/server"
   },
-  "devDependencies": { "concurrently": "^9.2.1" }
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "prettier": "^3.9.10"
+  }
 }

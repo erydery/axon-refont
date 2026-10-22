@@ -8,7 +8,13 @@ export async function resolveUserLevelId(user: Pick<User, 'levelId'>): Promise<n
   const available = await db.select({ id: levels.id, name: levels.name }).from(levels);
   const numeric = Number(stored);
   if (Number.isInteger(numeric) && available.some((level) => level.id === numeric)) return numeric;
-  const normalize = (value: string) => value.toLocaleLowerCase('fr').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+  const normalize = (value: string) =>
+    value
+      .toLocaleLowerCase('fr')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, ' ')
+      .trim();
   const exact = available.find((level) => normalize(level.name) === normalize(stored));
   if (exact) return exact.id;
   const digits = stored.match(/\d+/)?.[0];

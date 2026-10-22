@@ -9,7 +9,10 @@ function normalizeChart(value: unknown): string {
     const record = value as Record<string, unknown>;
     source = String(record.mermaid ?? record.chart ?? record.code ?? record.definition ?? '');
   }
-  source = source.trim().replace(/^```(?:mermaid)?\s*/i, '').replace(/\s*```$/, '');
+  source = source
+    .trim()
+    .replace(/^```(?:mermaid)?\s*/i, '')
+    .replace(/\s*```$/, '');
   try {
     const parsed: unknown = JSON.parse(source);
     if (parsed && typeof parsed === 'object') {
@@ -52,12 +55,19 @@ export function MermaidChart({ chart }: { chart: unknown }) {
   const id = `axon-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
   const [svg, setSvg] = useState('');
   const [error, setError] = useState('');
-  const [theme, setTheme] = useState(() => document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light');
+  const [theme, setTheme] = useState(() =>
+    document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light',
+  );
   const source = normalizeChart(chart);
 
   useEffect(() => {
-    const observer = new MutationObserver(() => setTheme(document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light'));
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    const observer = new MutationObserver(() =>
+      setTheme(document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light'),
+    );
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme'],
+    });
     return () => observer.disconnect();
   }, []);
 
@@ -67,22 +77,48 @@ export function MermaidChart({ chart }: { chart: unknown }) {
     setError('');
     if (!source) {
       setError('Aucune définition de diagramme trouvée.');
-      return () => { active = false; };
+      return () => {
+        active = false;
+      };
     }
     const isDark = theme === 'dark';
     const render = async () => {
       try {
-        mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', theme: 'base', themeVariables: palette(isDark), flowchart: { htmlLabels: false, curve: 'basis' } });
+        mermaid.initialize({
+          startOnLoad: false,
+          securityLevel: 'strict',
+          theme: 'base',
+          themeVariables: palette(isDark),
+          flowchart: { htmlLabels: false, curve: 'basis' },
+        });
         const result = await mermaid.render(id, source);
         if (active) setSvg(result.svg);
       } catch (cause) {
-        if (active) setError(cause instanceof Error ? cause.message : 'La définition du diagramme est invalide.');
+        if (active)
+          setError(
+            cause instanceof Error ? cause.message : 'La définition du diagramme est invalide.',
+          );
       }
     };
     const queued = renderQueue.then(render, render);
     renderQueue = queued.catch(() => undefined);
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, [id, source, theme]);
 
-  return svg ? <div className="mermaid-wrap" role="img" aria-label="Diagramme de cours" dangerouslySetInnerHTML={{ __html: svg }} /> : <div className="chart-fallback" role="status"><strong>Diagramme non affiché</strong><span>{error || 'Rendu du diagramme…'}</span><pre>{source}</pre></div>;
+  return svg ? (
+    <div
+      className="mermaid-wrap"
+      role="img"
+      aria-label="Diagramme de cours"
+      dangerouslySetInnerHTML={{ __html: svg }}
+    />
+  ) : (
+    <div className="chart-fallback" role="status">
+      <strong>Diagramme non affiché</strong>
+      <span>{error || 'Rendu du diagramme…'}</span>
+      <pre>{source}</pre>
+    </div>
+  );
 }

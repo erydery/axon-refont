@@ -12,14 +12,18 @@ try {
     id text PRIMARY KEY,
     applied_at timestamptz NOT NULL DEFAULT now()
   )`);
-  const alreadyApplied = await client.query('SELECT id FROM axon_refont_migrations WHERE id = $1', [migrationId]);
+  const alreadyApplied = await client.query('SELECT id FROM axon_refont_migrations WHERE id = $1', [
+    migrationId,
+  ]);
   if (alreadyApplied.rowCount) {
     console.log(`Migration ${migrationId} déjà appliquée.`);
   } else {
     const sql = await readFile(migrationPath, 'utf8');
     await client.query(sql);
     await client.query('INSERT INTO axon_refont_migrations (id) VALUES ($1)', [migrationId]);
-    console.log(`Migration ${migrationId} appliquée (tables ajoutées sans toucher aux données existantes).`);
+    console.log(
+      `Migration ${migrationId} appliquée (tables ajoutées sans toucher aux données existantes).`,
+    );
   }
   await client.query('COMMIT');
 } catch (error) {

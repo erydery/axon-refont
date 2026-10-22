@@ -6,10 +6,16 @@ import { MermaidChart } from './MermaidChart';
 const components: Components = {
   pre({ children, ...props }) {
     const child = Children.toArray(children)[0];
-    if (isValidElement<{ className?: string; children?: unknown }>(child) && child.props.className?.split(/\s+/).includes('language-mermaid')) {
+    if (
+      isValidElement<{ className?: string; children?: unknown }>(child) &&
+      child.props.className?.split(/\s+/).includes('language-mermaid')
+    ) {
       return <MermaidChart chart={child.props.children} />;
     }
-    if (isValidElement<{ className?: string }>(child) && child.props.className?.split(/\s+/).some(name => name.startsWith('language-'))) {
+    if (
+      isValidElement<{ className?: string }>(child) &&
+      child.props.className?.split(/\s+/).some((name) => name.startsWith('language-'))
+    ) {
       return <>{children}</>;
     }
     return <pre {...props}>{children}</pre>;
@@ -19,11 +25,19 @@ const components: Components = {
       const chart = String(children).replace(/\n$/, '');
       return <MermaidChart chart={chart} />;
     }
-    return <code className={className} {...props}>{children}</code>;
+    return (
+      <code className={className} {...props}>
+        {children}
+      </code>
+    );
   },
 };
 
 /** Render standard Markdown/GFM and turn Mermaid fenced blocks into diagrams. */
 export function MarkdownContent({ children }: { children: string }) {
-  return <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>{children}</ReactMarkdown>;
+  return (
+    <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
+      {children}
+    </ReactMarkdown>
+  );
 }
